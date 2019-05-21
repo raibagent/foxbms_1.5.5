@@ -85,6 +85,7 @@ def build(bld):
                 os.path.join('..', 'engine', 'database'),
 
                 os.path.join(bld.top_dir, bld.env.__sw_dir, bld.env.__bld_project, 'src', 'application', 'config'),
+                os.path.join(bld.top_dir, bld.env.__sw_dir, bld.env.__bld_project, 'src', 'application', 'com'),  # ITRI_MOD
 
                 os.path.join(bld.top_dir, bld.env.__sw_dir, bld.env.__bld_project, 'src', 'driver', 'config'),
 

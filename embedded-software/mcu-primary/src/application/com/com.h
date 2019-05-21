@@ -150,6 +150,12 @@ extern void COM_uartWrite(const uint8_t *source);
  */
 extern void UART_uartWrite_intbuf(const uint8_t *source, uint16_t length);
 
+
+#if defined(ENABLE_THIRD_PARTY)
+	extern void    COM_ThirdParty_printHelpCommand(uint8_t* cnt);
+	extern uint8_t COM_ThirdParty_Decoder(char* com_receivedbyte);
+#endif
+
 /*================== Function Implementations =============================*/
 
 #endif /* COM_H_ */

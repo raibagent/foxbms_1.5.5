@@ -114,6 +114,10 @@ extern void LTC_SaveAllGPIOMeasurement(void);
 extern LTC_STATE_REQUEST_e LTC_GetStateRequest(void);
 extern LTC_STATEMACH_e LTC_GetState(void);
 
+#if defined(ENABLE_THIRD_PARTY)
+	extern uint32_t LTC_ThirdParty_Set_Get_Property(char* prop, void* iParam1, void* iParam2, void* oParam1, void* oParam2);
+#endif
+
 /*================== Function Implementations =============================*/
 
 #endif /* LTC_H_ */

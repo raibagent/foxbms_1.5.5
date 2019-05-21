@@ -58,6 +58,11 @@
 #include "ltc_pec.h"
 #include "os.h"
 
+#if defined(ITRI_MOD)
+#include "com.h"
+//#include "general_itri.h"
+#endif
+
 /*================== Macros and Definitions ===============================*/
 
 /**
@@ -2399,7 +2404,7 @@ static STD_RETURN_TYPE_e LTC_Init(void) {
     uint16_t PEC_result = 0;
     uint16_t i = 0;
 
-
+    DEBUG_PRINTF(("[%s:%d]%s +++\r\n", __FILE__, __LINE__, __func__));
     /* set REFON bit to 1 */
     /* data for the configuration */
     for (i=0; i < LTC_N_LTC; i++) {
@@ -3487,3 +3492,13 @@ extern STD_RETURN_TYPE_e LTC_GetMuxSequenceState(void) {
 
     return (retval);
 }
+
+#if defined(ENABLE_THIRD_PARTY)
+#include <string.h>
+void* LTC_ThirdParty_Get_static_var(char* varName)
+{
+	if (strcmp(varName, "ltc_cellvoltage") == 0) {
+		return (void*)&ltc_cellvoltage;
+	}
+}
+#endif // ENABLE_THIRD_PARTY

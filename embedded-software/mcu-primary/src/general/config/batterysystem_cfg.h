@@ -193,7 +193,11 @@ typedef enum {
  * If set to TRUE, foxBMS checks for the presence of a current sensor. If sensor stops responding during runtime, an error is raised
  *
 */
-#define CURRENT_SENSOR_PRESENT               TRUE
+#if defined(ITRI_MOD)
+	#define CURRENT_SENSOR_PRESENT               TRUE
+#else
+	#define CURRENT_SENSOR_PRESENT               TRUE
+#endif
 
 /**
  * If set to FALSE, foxBMS does not check CAN timing.

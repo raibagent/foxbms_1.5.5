@@ -69,6 +69,7 @@ def build(bld):
             os.path.join('main.c'),
             os.path.join('version.c')])
 
+
     includes = os.path.join(bld.bldnode.abspath()) + ' '
     includes += bld.env.__inc_FreeRTOS + ' ' + bld.env.__inc_hal
     includes += ' '.join([

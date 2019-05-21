@@ -77,6 +77,11 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+#if defined(ENABLE_THIRD_PARTY)	// ITRI_MOD
+	#include "../third_party/com_itri.c"
+	#include "../third_party/ltc_itri.c"
+#endif
+
 /*================== Macros and Definitions ===============================*/
 
 

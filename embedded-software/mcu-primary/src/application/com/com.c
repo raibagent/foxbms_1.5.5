@@ -193,7 +193,11 @@ void COM_printHelpCommand(void) {
             break;
 
         case 7:
+#if defined(ENABLE_THIRD_PARTY)
+            COM_ThirdParty_printHelpCommand(&cnt);
+#else
             DEBUG_PRINTF(("==========================  ==========================================================================================\r\n"));
+#endif
             break;
 
         default:
@@ -556,6 +560,18 @@ void COM_Decoder(void) {
             return;
         }
 
+#if defined(ENABLE_THIRD_PARTY)
+        if (COM_ThirdParty_Decoder(com_receivedbyte) == 0) {
+        	/* Reset timeout to TESTMODE_TIMEOUT */
+			com_tickcount = OS_getOSSysTick();
+
+			/* Clear received command */
+			memset(com_receivedbyte, 0, sizeof(com_receivedbyte));
+			com_receive_slot = 0;
+
+			return;
+        }
+#endif
 
         /* Invalid command */
         DEBUG_PRINTF(("Invalid command!\r\n%s\r\n", com_receivedbyte));

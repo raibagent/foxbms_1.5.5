@@ -61,6 +61,10 @@
 #include "matlab_types.h"
 #include "foxbmsconfig.h"
 
+#if defined(ENABLE_THIRD_PARTY) // ITRI_MOD
+	#include "../third_party/general_itri.h"
+#endif
+
 /*================== Macros and Definitions ===============================*/
 
 /**
