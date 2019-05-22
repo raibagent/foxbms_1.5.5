@@ -21,7 +21,7 @@ char* float_to_string(float v)
 
 typedef uint32_t (*rb_cmd_funcPtr)(char* params);
 
-static char com_ltc_out_buf[96] = {0, };
+static char com_ltc_out_buf[128] = {0, };
 
 uint32_t rb_cmd_test_func_1(char* params) {
 	DEBUG_PRINTF(("DEBUG_PRINTF_EX test, float(%s), int(%d), hex(0x%02X), str(%s)\r\n", float_to_string(1.234), 123, 16, "A", "abc"));

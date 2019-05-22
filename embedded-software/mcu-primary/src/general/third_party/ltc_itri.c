@@ -26,11 +26,17 @@ uint32_t get_BS_NR_OF_BAT_CELLS_PER_MODULE(void* iParam1, void* iParam2, void* o
 }
 
 uint32_t get_LTC_CellVoltages(void* iParam1, void* iParam2, void* oParam1, void* oParam2) {
-	uint32_t modIdx = *(uint32_t*)iParam1;
+	uint32_t modIdx = *(uint32_t*)iParam1, i;
 	char *com_out_buf = (char*)oParam1;
 
 	DATA_BLOCK_CELLVOLTAGE_s* p_ltc_cellvoltage = (DATA_BLOCK_CELLVOLTAGE_s*)LTC_ThirdParty_Get_static_var("ltc_cellvoltage");
 
+#if 1
+	sprintf(com_out_buf, "M[%02u]", modIdx);
+	for (i=0; i < BS_NR_OF_BAT_CELLS_PER_MODULE; i++) {
+		sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_cellvoltage->voltage[modIdx*(BS_NR_OF_BAT_CELLS_PER_MODULE)+i]);
+	}
+#else
 	sprintf(com_out_buf, "M[%u] %u %u %u %u %u %u %u ", modIdx,
 			p_ltc_cellvoltage->voltage[modIdx*(BS_NR_OF_BAT_CELLS_PER_MODULE)+0],
 			p_ltc_cellvoltage->voltage[modIdx*(BS_NR_OF_BAT_CELLS_PER_MODULE)+1],
@@ -39,7 +45,7 @@ uint32_t get_LTC_CellVoltages(void* iParam1, void* iParam2, void* oParam1, void*
 			p_ltc_cellvoltage->voltage[modIdx*(BS_NR_OF_BAT_CELLS_PER_MODULE)+4],
 			p_ltc_cellvoltage->voltage[modIdx*(BS_NR_OF_BAT_CELLS_PER_MODULE)+5],
 			p_ltc_cellvoltage->voltage[modIdx*(BS_NR_OF_BAT_CELLS_PER_MODULE)+6]);
-
+#endif
 	//DEBUG_PRINTF(("%s\r\n", com_out_buf));
 
 	return 0;
