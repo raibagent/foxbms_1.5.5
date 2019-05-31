@@ -16,6 +16,8 @@
 	#define ITRI_MOD_1			// COM command
 	#define ITRI_MOD_2			// LTC extend
 
+	#define ITRI_MOD_5			// expand module number to 25
+
 	extern char* float_to_string(float v);
 
 #endif // ITRI_MOD

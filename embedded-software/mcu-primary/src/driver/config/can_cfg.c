@@ -310,6 +310,9 @@ CAN_HandleTypeDef hcan1 = {
  *  Configure TX messages here
  ****************************************/
 
+#if defined(ITRI_MOD_5)
+	#include "can_cfg_itri.h"
+#else
 const CAN_MSG_TX_TYPE_s can_CAN0_messages_tx[] = {
         { 0x110, 8, 100, 0, NULL_PTR },  /*!< BMS system state 0 */
         { 0x111, 8, 100, 0, NULL_PTR },  /*!< BMS system state 1 */
@@ -422,7 +425,7 @@ const CAN_MSG_TX_TYPE_s can_CAN0_messages_tx[] = {
         , { 0x35B, 8, 100, 20, NULL_PTR }  /*!< Current Sensor Trigger */
 #endif
 };
-
+#endif // ITRI_MOD_5
 
 const CAN_MSG_TX_TYPE_s can_CAN1_messages_tx[] = {
 };
