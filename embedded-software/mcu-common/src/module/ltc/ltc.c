@@ -326,6 +326,9 @@ static void LTC_Initialize_Database(void) {
     for (i=0; i < BS_NR_OF_MODULES * BS_NR_OF_GPIOS_PER_MODULE; i++) {
         ltc_allgpiovoltage.gpiovoltage[i] = 0;
     }
+#if defined(ITRI_MOD_2)
+    ltc_allgpiovoltage.gpio_ref_vol = 3000;
+#endif // ITRI_MOD_2
 
     for (i = 0; i < BS_NR_OF_MODULES * (BS_NR_OF_BAT_CELLS_PER_MODULE+1); i++) {
         ltc_openwire.openwire[i] = 0;
@@ -3499,6 +3502,8 @@ void* LTC_ThirdParty_Get_static_var(char* varName)
 {
 	if (strcmp(varName, "ltc_cellvoltage") == 0) {
 		return (void*)&ltc_cellvoltage;
+	} else if (strcmp(varName, "ltc_allgpiovoltage") == 0) {
+		return (void*)&ltc_allgpiovoltage;
 	}
 }
 #endif // ENABLE_THIRD_PARTY

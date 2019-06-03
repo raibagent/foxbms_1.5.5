@@ -34,7 +34,7 @@ uint32_t get_LTC_CellVoltages(void* iParam1, void* iParam2, void* oParam1, void*
 #if 1
 	sprintf(com_out_buf, "M[%02u]", modIdx);
 	for (i=0; i < BS_NR_OF_BAT_CELLS_PER_MODULE; i++) {
-		sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_cellvoltage->voltage[modIdx*(BS_NR_OF_BAT_CELLS_PER_MODULE)+i]);
+		sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_cellvoltage->voltage[i]);
 	}
 #else
 	sprintf(com_out_buf, "M[%u] %u %u %u %u %u %u %u ", modIdx,
@@ -51,6 +51,29 @@ uint32_t get_LTC_CellVoltages(void* iParam1, void* iParam2, void* oParam1, void*
 	return 0;
 }
 
+uint32_t get_LTC_GPIOVoltages(void* iParam1, void* iParam2, void* oParam1, void* oParam2) {
+	uint32_t modIdx = *(uint32_t*)iParam1, i;
+	char *com_out_buf = (char*)oParam1;
+
+	DATA_BLOCK_ALLGPIOVOLTAGE_s* p_ltc_allgpiovoltage = (DATA_BLOCK_ALLGPIOVOLTAGE_s*)LTC_ThirdParty_Get_static_var("ltc_allgpiovoltage");
+
+	sprintf(com_out_buf, "M[%02u]", modIdx);
+	for (i=0; i < BS_NR_OF_GPIOS_PER_MODULE; i++) {
+		sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_allgpiovoltage->gpiovoltage[i]);
+	}
+	sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_allgpiovoltage->gpio_ref_vol);
+/*
+	sprintf(com_out_buf, "M[%u] %u %u %u %u %u %u", modIdx,
+			 	 	 	 	 	 	 	 	 	 *((uint16_t *)(&LTC_allGPIOVoltages[modIdx*6 + 0])),
+												 *((uint16_t *)(&LTC_allGPIOVoltages[modIdx*6 + 1])),
+												 *((uint16_t *)(&LTC_allGPIOVoltages[modIdx*6 + 2])),
+												 *((uint16_t *)(&LTC_allGPIOVoltages[modIdx*6 + 3])),
+												 *((uint16_t *)(&LTC_allGPIOVoltages[modIdx*6 + 4])),
+												 *((uint16_t *)(&LTC_allGPIOVoltages[modIdx*6 + 5])));
+*/
+	return 0;
+}
+
 typedef struct {
 	char 			 prop[48];
 	ltc_prop_funcPtr propFunc;
@@ -60,6 +83,7 @@ LTC_PROP_s ltc_props[] = {
 	{"get_BS_NR_OF_MODULES", 				&get_BS_NR_OF_MODULES},
 	{"get_BS_NR_OF_BAT_CELLS_PER_MODULE", 	&get_BS_NR_OF_BAT_CELLS_PER_MODULE},
 	{"get_LTC_CellVoltages", 				&get_LTC_CellVoltages},
+	{"get_LTC_GPIOVoltages", 				&get_LTC_GPIOVoltages},
 };
 
 uint32_t LTC_ThirdParty_Set_Get_Property(char* prop, void* iParam1, void* iParam2, void* oParam1, void* oParam2)

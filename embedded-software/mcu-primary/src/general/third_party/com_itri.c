@@ -57,6 +57,18 @@ uint32_t rb_cmd_get_LTC_CellVoltages(char* params) {
 
 	return 0;
 }
+
+uint32_t rb_cmd_get_LTC_GPIOVoltages(char* params) {
+	char* pCmd = strtok(params, " ");
+	char* pParam = strtok(NULL, " ");
+	uint32_t modIdx = (uint32_t)atoi(pParam);
+
+	LTC_ThirdParty_Set_Get_Property("get_LTC_GPIOVoltages", (void*)&modIdx, NULL, com_ltc_out_buf, NULL);
+	DEBUG_PRINTF(("%s\r\n", com_ltc_out_buf));
+
+	return 0;
+}
+
 #endif // ITRI_MOD_2
 
 typedef struct {
@@ -71,6 +83,7 @@ RB_CMD_s rb_cmds[] = {
 	{"get_BS_NR_OF_MODULES", 				"number of modules", 					&rb_cmd_get_BS_NR_OF_MODULES},
 	{"get_BS_NR_OF_BAT_CELLS_PER_MODULE", 	"number of bat. cells per module", 		&rb_cmd_get_BS_NR_OF_BAT_CELLS_PER_MODULE},
 	{"get_LTC_CellVoltages", 				"cmd [module no.] ", 					&rb_cmd_get_LTC_CellVoltages},
+	{"get_LTC_GPIOVoltages", 				"cmd [module no.] ", 					&rb_cmd_get_LTC_GPIOVoltages},
 #endif // ITRI_MOD_2
 };
 

@@ -566,6 +566,9 @@ typedef struct {
     uint32_t previous_timestamp;                                              /*!< timestamp of last database entry           */
     uint16_t gpiovoltage[BS_NR_OF_MODULES * BS_NR_OF_GPIOS_PER_MODULE];       /*!< unit: mV                                   */
     uint8_t state;                                                            /*!< for future use                             */
+#if defined(ITRI_MOD_2)
+    uint16_t gpio_ref_vol;
+#endif // ITRI_MOD_2
 } DATA_BLOCK_ALLGPIOVOLTAGE_s;
 
 /**
