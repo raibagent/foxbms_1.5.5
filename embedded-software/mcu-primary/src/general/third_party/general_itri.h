@@ -15,6 +15,7 @@
 
 	#define ITRI_MOD_1			// COM command
 	#define ITRI_MOD_2			// LTC extend
+	#define ITRI_MOD_2_a		// writes GPIO vol. to ltc_celltemperature
 
 	#define ITRI_MOD_5			// expand module number to 25
 

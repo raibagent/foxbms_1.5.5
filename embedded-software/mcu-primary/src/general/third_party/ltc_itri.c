@@ -59,9 +59,9 @@ uint32_t get_LTC_GPIOVoltages(void* iParam1, void* iParam2, void* oParam1, void*
 
 	sprintf(com_out_buf, "M[%02u]", modIdx);
 	for (i=0; i < BS_NR_OF_GPIOS_PER_MODULE; i++) {
-		sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_allgpiovoltage->gpiovoltage[i]);
+		sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_allgpiovoltage->gpiovoltage[modIdx*BS_NR_OF_GPIOS_PER_MODULE+i]);
 	}
-	sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_allgpiovoltage->gpio_ref_vol);
+	sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_allgpiovoltage->gpio_ref_vol[modIdx]);
 /*
 	sprintf(com_out_buf, "M[%u] %u %u %u %u %u %u", modIdx,
 			 	 	 	 	 	 	 	 	 	 *((uint16_t *)(&LTC_allGPIOVoltages[modIdx*6 + 0])),

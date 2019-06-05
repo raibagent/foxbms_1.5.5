@@ -327,7 +327,9 @@ static void LTC_Initialize_Database(void) {
         ltc_allgpiovoltage.gpiovoltage[i] = 0;
     }
 #if defined(ITRI_MOD_2)
-    ltc_allgpiovoltage.gpio_ref_vol = 3000;
+    for (i=0; i < BS_NR_OF_MODULES; i++) {
+    	ltc_allgpiovoltage.gpio_ref_vol[i] = 3000;
+    }
 #endif // ITRI_MOD_2
 
     for (i = 0; i < BS_NR_OF_MODULES * (BS_NR_OF_BAT_CELLS_PER_MODULE+1); i++) {
@@ -456,6 +458,19 @@ extern void LTC_SaveTemperatures(void) {
     ltc_minmax.temperature_max = max;
     ltc_minmax.temperature_module_number_max = module_number_max;
     ltc_minmax.temperature_sensor_number_max = sensor_number_max;
+
+#if defined(ITRI_MOD_2_a)
+	{
+    	uint16_t nr_of_gpio = 5;	// unsupport 18 cells board
+		for (i=0; i < BS_NR_OF_MODULES; i++) {
+				for (j=0; j < nr_of_gpio; j++) {
+					ltc_celltemperature.temperature[i*(BS_NR_OF_TEMP_SENSORS_PER_MODULE)+j] = ltc_allgpiovoltage.gpiovoltage[i*(BS_NR_OF_TEMP_SENSORS_PER_MODULE)+j];
+				}
+				ltc_celltemperature.temperature[i*(BS_NR_OF_TEMP_SENSORS_PER_MODULE)+nr_of_gpio] = ltc_allgpiovoltage.gpio_ref_vol[i];
+		}
+	}
+#endif // ITRI_MOD_2_a
+
     DB_WriteBlock(&ltc_celltemperature, DATA_BLOCK_ID_CELLTEMPERATURE);
     DB_WriteBlock(&ltc_minmax, DATA_BLOCK_ID_MINMAX);
 }
