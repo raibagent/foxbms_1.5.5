@@ -128,6 +128,9 @@ typedef enum {
     LTC_STATEMACH_EEPROM_READ_UID           = 30,   /*!< Control of the external EEPROM                 */
     LTC_STATEMACH_UNDEFINED                 = 31,   /*!< undefined state                                */
     LTC_STATEMACH_RESERVED1                 = 0x80, /*!< reserved state                                 */
+#if defined(ITRI_MOD_2_b)
+	LTC_STATEMACH_EBMCONTROL				= 0x81, /*!< Control of the chroma ebm board 				*/
+#endif
     LTC_STATEMACH_ERROR_SPIFAILED           = 0xF0, /*!< Error-State: SPI error                         */
     LTC_STATEMACH_ERROR_PECFAILED           = 0xF1, /*!< Error-State: PEC error                         */
     LTC_STATEMACH_ERROR_MUXFAILED           = 0xF2, /*!< Error-State: multiplexer error                 */
@@ -353,6 +356,15 @@ typedef enum {
     LTC_SAVE_MUX_MEASUREMENT_MUXMEASUREMENT             = 1,    /*!<    */
 } LTC_STATEMACH_MUXMEASUREMENT_SUB_e;
 
+#if defined(ITRI_MOD_2_b)
+typedef enum {
+	LTC_START_EBMCONTROL           		= 0,    /*!<    */
+	LTC_PROC1_EBMCONTROL           		= 1,    /*!<    */
+	LTC_PROC2_EBMCONTROL           		= 2,    /*!<    */
+	LTC_EXIT_EBMCONTROL           		= 3,    /*!<    */
+} LTC_STATEMACH_EBMCONTROL_SUB;
+#endif // ITRI_MOD_2_b
+
 /**
  * State requests for the LTC statemachine
  */
@@ -381,6 +393,9 @@ typedef enum {
     LTC_STATEMACH_DEVICE_PARAMETER_REQUEST = LTC_STATEMACH_DEVICE_PARAMETER,
     LTC_STATEMACH_ADC_ACCURACY_REQUEST    = LTC_STATEMACH_ADC_ACCURACY,
     LTC_STATEMACH_DIGITAL_FILTER_REQUEST = LTC_STATEMACH_DIGITAL_FILTER,
+#if defined(ITRI_MOD_2_b)
+	LTC_STATE_EBMCONTROL_REQUEST      	  = LTC_STATEMACH_EBMCONTROL,           	/*!<    */
+#endif
     LTC_STATE_NO_REQUEST                  = LTC_STATEMACH_RESERVED1,                /*!<    */
 } LTC_STATE_REQUEST_e;
 

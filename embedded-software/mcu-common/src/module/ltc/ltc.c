@@ -206,6 +206,10 @@ static uint8_t ltc_TXBuffer[LTC_N_BYTES_FOR_DATA_TRANSMISSION_DATA_ONLY];
 static uint8_t ltc_TXBufferClock[4+9];
 static uint8_t ltc_TXPECBufferClock[4+9];
 
+#if defined(ITRI_MOD_2_b)
+#include "..\..\..\..\mcu-primary\src\general\third_party\ltc_itri.h"
+extern LTC_EBM_CMD_s ltc_ebm_cmd;
+#endif // ITRI_MOD_2_b
 
 /*================== Function Prototypes ==================================*/
 
@@ -255,6 +259,183 @@ static LTC_RETURN_TYPE_e LTC_CheckStateRequest(LTC_STATE_REQUEST_e statereq);
 
 
 /*================== Function Implementations =============================*/
+#if defined(ITRI_MOD_2_b)
+extern uint32_t MCU_GetTimeBase(void);
+
+LTC_EBM_CMD_s ltc_ebm_cmd = LTC_EBM_NONE;
+
+LTC_EBM_CONFIG_s ltc_ebm_config[BS_NR_OF_MODULES];
+LTC_EBM_CONFIG_s ltc_col_config[BS_NR_OF_COLUMNS];
+
+static void LTC_EBM_SetGPIO(uint8_t gpioNo, uint8_t val, uint8_t* txBuf) {
+	if (val == 0) {
+		*txBuf &= ~(0x01 << (gpioNo+2));
+	} else {
+		*txBuf |= (0x01 << (gpioNo+2));
+	}
+}
+
+typedef struct {
+	uint8_t no;
+	uint8_t val;
+} GPIO_SETTING;
+typedef struct {
+	GPIO_SETTING gpio1;
+	GPIO_SETTING gpio2;
+	GPIO_SETTING gpio4;
+} EB_STATE_SETTING;
+static EB_STATE_SETTING eb_state_setting[] = {
+		// bypass setting
+#if defined(ITRI_EBM_CHROMA_V2)
+		{{1, 1}, {2, 0}, {4, 1},},
+#else	// ver. 3+
+		{{1, 1}, {2, 0}, {4, 0},},
+#endif
+		// enable setting
+#if defined(ITRI_EBM_CHROMA_V2)
+		{{1, 1}, {2, 0}, {4, 0},},
+#else	// ver. 3+
+		{{1, 1}, {2, 0}, {4, 1},},
+#endif
+		// disable setting
+		{{1, 1}, {2, 1}, {4, 1},},
+};
+
+typedef enum {
+	LTC_EBM_COL_STATE_NO_CHANGE	= 0,
+	LTC_EBM_COL_STATE_RESET 	= 1,
+	LTC_EBM_COL_STATE_DISABLE 	= 2,
+	LTC_EBM_COL_STATE_NOT_READ 	= 9,
+} LTC_EBM_COL_STATE_e;
+typedef struct {
+	uint16_t modNo;
+	uint8_t  gpioNo;
+	LTC_EBM_COL_STATE_e  gpioVal;
+} COL_GPIO_SETTING;
+typedef struct {
+	// read state; gpioVal:9 -> not read, gpioVal:0 -> no change, gpioVal:1 -> reset(ON), gpioVal:2 -> disable(OFF)
+	COL_GPIO_SETTING	state;
+	// reset(ON)
+	COL_GPIO_SETTING	reset;
+	// disable(OFF)
+	COL_GPIO_SETTING	disable;
+} COL_STATE_SETTING;
+static COL_STATE_SETTING col_state_setting[] = {
+		// column 0
+		{{0, 1, LTC_EBM_COL_STATE_NOT_READ},  {1, 1, LTC_EBM_COL_STATE_NO_CHANGE},  {2, 1, LTC_EBM_COL_STATE_NO_CHANGE},},
+		// column 1
+		{{5, 1, LTC_EBM_COL_STATE_NOT_READ},  {6, 1, LTC_EBM_COL_STATE_NO_CHANGE},  {7, 1, LTC_EBM_COL_STATE_NO_CHANGE},},
+		// column 2
+		{{10, 1, LTC_EBM_COL_STATE_NOT_READ}, {11, 1, LTC_EBM_COL_STATE_NO_CHANGE}, {12, 1, LTC_EBM_COL_STATE_NO_CHANGE},},
+		// column 3
+		{{19, 1, LTC_EBM_COL_STATE_NOT_READ}, {18, 1, LTC_EBM_COL_STATE_NO_CHANGE}, {17, 1, LTC_EBM_COL_STATE_NO_CHANGE},},
+		// column 4
+		{{24, 1, LTC_EBM_COL_STATE_NOT_READ}, {23, 1, LTC_EBM_COL_STATE_NO_CHANGE}, {22, 1, LTC_EBM_COL_STATE_NO_CHANGE},},
+};
+
+static uint8_t ltc_ebm_force_update = 0;
+
+static void LTC_EBM_SetColState(uint16_t modNo, uint8_t* txBuf, uint8_t isStart) {
+	uint16_t colNo = modNo / BS_NR_OF_ROWS;
+	uint8_t oldState = 0;
+
+	// get col. old state and set new state
+	if (col_state_setting[colNo].state.gpioVal == LTC_EBM_COL_STATE_NOT_READ) {
+		uint16_t modNo = col_state_setting[colNo].state.modNo;
+		uint16_t gpioNo = col_state_setting[colNo].state.gpioNo - 1;
+		//uint8_t oldState = *((uint16_t *)(&LTC_GPIOVoltages[modNo*6*2 + gpioNo*2])) > 40000 ? 1:0; // ref. #55; 1:Non-Protecting(=enable), 0:Protection(=bypass)
+		uint8_t oldState = ltc_allgpiovoltage.gpiovoltage[modNo*BS_NR_OF_GPIOS_PER_MODULE + gpioNo] > 4000 ? 1:0; // ref. #55; 1:Non-Protecting(=enable), 0:Protection(=bypass)
+
+		if (ltc_col_config[colNo].eb_state == oldState) {
+			col_state_setting[colNo].state.gpioVal = LTC_EBM_COL_STATE_NO_CHANGE;	// no change
+		} else if (oldState == 1 && ltc_col_config[colNo].eb_state == 0) {
+			col_state_setting[colNo].state.gpioVal = LTC_EBM_COL_STATE_DISABLE; // disable(turn OFF SPM)
+		} else {
+			col_state_setting[colNo].state.gpioVal = LTC_EBM_COL_STATE_RESET; // reset(turn ON SPM)
+		}
+		//DEBUG_PRINTF(("oldState:%u(%u, %u) newState:%u colState:%u colNo:%u modNo:%u\r\n",
+		//		oldState, gpioNo, ltc_allgpiovoltage.gpiovoltage[modNo*BS_NR_OF_GPIOS_PER_MODULE + gpioNo],
+		//		ltc_col_config[colNo].eb_state, col_state_setting[colNo].state.gpioVal, colNo, modNo));
+	}
+
+	// force update
+	if (ltc_ebm_force_update == 1) {
+		if (ltc_col_config[colNo].eb_state == 0) col_state_setting[colNo].state.gpioVal = LTC_EBM_COL_STATE_DISABLE;
+		else 									 col_state_setting[colNo].state.gpioVal = LTC_EBM_COL_STATE_RESET;
+	}
+
+#define SPM_CONFIG_RESET_DISABLE(r, d) 									\
+		if (col_state_setting[colNo].disable.modNo == modNo) { 			\
+			LTC_EBM_SetGPIO(col_state_setting[colNo].disable.gpioNo,	\
+							d,											\
+							txBuf);										\
+			/*DEBUG_PRINTF_EX("disable(%u) colNo:%u modNo:%u isStart:%u col.state:%u\r\n", d, colNo, modNo, isStart, col_state_setting[colNo].state.gpioVal );*/ \
+		}																\
+		if (col_state_setting[colNo].reset.modNo == modNo) {			\
+			LTC_EBM_SetGPIO(col_state_setting[colNo].reset.gpioNo,		\
+							r,											\
+							txBuf);										\
+			/*DEBUG_PRINTF_EX("reset(%u) colNo:%u modNo:%u isStart:%u col.state:%u\r\n", r, colNo, modNo, isStart, col_state_setting[colNo].state.gpioVal );*/ \
+		}
+
+	// reset
+	if (col_state_setting[colNo].state.gpioVal == LTC_EBM_COL_STATE_RESET) {
+		SPM_CONFIG_RESET_DISABLE(isStart, 0);
+	}
+	// disable
+	if (col_state_setting[colNo].state.gpioVal == LTC_EBM_COL_STATE_DISABLE) {
+		SPM_CONFIG_RESET_DISABLE(0, isStart);
+	}
+	// no change
+	if (col_state_setting[colNo].state.gpioVal == LTC_EBM_COL_STATE_NO_CHANGE) {
+		SPM_CONFIG_RESET_DISABLE(0, 0);
+	}
+	//DEBUG_PRINTF(("col:%u mod:%u isStart:%u txBuf:0x%x gpioVal:%u\r\n", colNo, modNo, isStart, txBuf[0], col_state_setting[colNo].state.gpioVal));
+	// reset col. gpioVal to "not read"
+	if (isStart == 0 && (modNo % BS_NR_OF_ROWS) == (BS_NR_OF_ROWS - 1)) {
+		col_state_setting[colNo].state.gpioVal = LTC_EBM_COL_STATE_NOT_READ;
+	}
+}
+
+static STD_RETURN_TYPE_e LTC_EBM_SetEBColState(uint8_t isStart) {
+	STD_RETURN_TYPE_e retVal = E_OK;
+	uint16_t i=0, j=0;
+	//uint8_t gpio1 = 1, gpio2 = 1, gpio4 = 1;
+
+	for (j=0; j < BS_NR_OF_MODULES; j++) {
+		i = BS_NR_OF_MODULES-j-1;
+		ltc_TXBuffer[0+(i)*6] = 0xFC;	// REFON = 1, GPIOs are all enabled
+
+		LTC_EBM_SetColState(j,
+							&ltc_TXBuffer[0+(i)*6],
+							isStart);
+		LTC_EBM_SetGPIO(eb_state_setting[ltc_ebm_config[j].eb_state].gpio2.no,
+						eb_state_setting[ltc_ebm_config[j].eb_state].gpio2.val,
+						&ltc_TXBuffer[0+(i)*6]);
+		LTC_EBM_SetGPIO(eb_state_setting[ltc_ebm_config[j].eb_state].gpio4.no,
+						eb_state_setting[ltc_ebm_config[j].eb_state].gpio4.val,
+						&ltc_TXBuffer[0+(i)*6]);
+
+#if defined(ITRI_MOD_12)
+		LTC_EBM_SetLEDState(j, &ltc_TXBuffer[0+(i)*6]);
+#endif
+
+		ltc_TXBuffer[1+(i)*6] = 0x00;
+		ltc_TXBuffer[2+(i)*6] = 0x00;
+		ltc_TXBuffer[3+(i)*6] = 0x00;
+		ltc_TXBuffer[4+(i)*6] = 0x00;
+		ltc_TXBuffer[5+(i)*6] = 0x00;
+	}
+	//DEBUG_PRINTF_EX("[%u ms]isStart:%u 0x%x 0x%x 0x%x \r\n",
+	//		MCU_GetTimeStamp(), isStart,
+	//		ltc_TXBuffer[2*6], ltc_tmpTXbuffer[1*6], ltc_tmpTXbuffer[0*6]);
+	retVal = LTC_TX((uint8_t*)ltc_cmdWRCFG, ltc_TXBuffer, ltc_TXPECbuffer);
+	//DEBUG_PRINTF(("[%s:%d]ltc_cmdWRCFG [0x%x 0x%x 0x%x] isStart:%u retVal:%u\r\n", __FILE__, __LINE__,
+	//		ltc_TXBuffer[2*6], ltc_TXBuffer[1*6], ltc_TXBuffer[0*6], isStart, retVal));
+
+	return retVal;
+}
+#endif // ITRI_MOD_2_b
 
 /*================== Public functions =====================================*/
 
@@ -921,7 +1102,11 @@ void LTC_Trigger(void) {
                 if (ltc_state.reusageMeasurementMode == LTC_NOT_REUSED) {
                     LTC_SaveVoltages();
                     ltc_state.state = LTC_STATEMACH_MUXMEASUREMENT;
+#if defined(ITRI_MOD_2_d)
+                    ltc_state.substate = LTC_STATEMACH_STOREMUXMEASUREMENT;
+#else
                     ltc_state.substate = LTC_STATEMACH_MUXCONFIGURATION_INIT;
+#endif // ITRI_MOD_2_d
                 } else if (ltc_state.reusageMeasurementMode == LTC_REUSE_READVOLT_FOR_ADOW_PUP) {
                     ltc_state.state = LTC_STATEMACH_OPENWIRE_CHECK;
                     ltc_state.substate = LTC_READ_VOLTAGES_PULLUP_OPENWIRE_CHECK;
@@ -1101,6 +1286,8 @@ void LTC_Trigger(void) {
                 break;
 
             } else if (ltc_state.substate == LTC_STATEMACH_STOREMUXMEASUREMENT) {
+#if defined(ITRI_MOD_2_d)
+#else
                 if (ltc_state.timer == 0 && SPI_IsTransmitOngoing() == TRUE) {
                     DIAG_Handler(DIAG_CH_LTC_SPI, DIAG_EVENT_NOK, 0, NULL_PTR);
                 } else {
@@ -1115,10 +1302,17 @@ void LTC_Trigger(void) {
                 }
 
                 ++ltc_state.muxmeas_seqptr;
+#endif // ITRI_MOD_2_d
 
                 ltc_state.timer = 0;
                 if (ltc_state.balance_control_done == TRUE) {
                     statereq = LTC_TransferStateRequest(&tmpbusID, &tmpadcMode, &tmpadcMeasCh);
+#if defined(ITRI_MOD_2_b)
+                    if (statereq == LTC_STATE_EBMCONTROL_REQUEST) {
+						ltc_state.state = LTC_STATEMACH_EBMCONTROL;
+						ltc_state.substate = LTC_START_EBMCONTROL;
+						ltc_state.balance_control_done = FALSE;
+#else
                     if (statereq == LTC_STATE_USER_IO_WRITE_REQUEST) {
                         ltc_state.state = LTC_STATEMACH_USER_IO_CONTROL;
                         ltc_state.substate = LTC_USER_IO_SET_OUTPUT_REGISTER;
@@ -1149,14 +1343,25 @@ void LTC_Trigger(void) {
                         /* Send ADOW command with PUP two times */
                         ltc_state.resendCommandCounter = LTC_NMBR_REQ_ADOW_COMMANDS;
                         ltc_state.balance_control_done = FALSE;
+#endif // ITRI_MOD_2_b
                     } else {
+#if defined(ITRI_MOD_2_c)
+                    	ltc_state.state = LTC_STATEMACH_ALLGPIOMEASUREMENT;
+                    	ltc_state.substate = LTC_READ_AUXILIARY_REGISTER_A_RDAUXA;
+#else
                         ltc_state.state = LTC_STATEMACH_BALANCECONTROL;
                         ltc_state.substate = LTC_CONFIG_BALANCECONTROL;
+#endif // ITRI_MOD_2_c
                         ltc_state.balance_control_done = TRUE;
                     }
                 } else {
+#if defined(ITRI_MOD_2_c)
+                	ltc_state.state = LTC_STATEMACH_ALLGPIOMEASUREMENT;
+                	ltc_state.substate = LTC_READ_AUXILIARY_REGISTER_A_RDAUXA;
+#else
                     ltc_state.state = LTC_STATEMACH_BALANCECONTROL;
                     ltc_state.substate = LTC_CONFIG_BALANCECONTROL;
+#endif // ITRI_MOD_2_c
                     ltc_state.balance_control_done = TRUE;
                 }
 
@@ -1356,6 +1561,11 @@ void LTC_Trigger(void) {
                 LTC_SaveAllGPIOMeasurement();
 
                 ltc_state.timer = 0;
+#if defined(ITRI_MOD_2_c)
+                ltc_state.check_spi_flag = FALSE;
+                ltc_state.state = LTC_STATEMACH_STARTMEAS;
+                ltc_state.substate = LTC_ENTRY;
+#else
                 if (ltc_state.balance_control_done == TRUE) {
                     statereq = LTC_TransferStateRequest(&tmpbusID, &tmpadcMode, &tmpadcMeasCh);
                     if (statereq == LTC_STATE_USER_IO_WRITE_REQUEST) {
@@ -1398,10 +1608,61 @@ void LTC_Trigger(void) {
                     ltc_state.substate = LTC_CONFIG_BALANCECONTROL;
                     ltc_state.balance_control_done = TRUE;
                 }
+#endif // ITRI_MOD_2_c
             }
-
             break;
 
+#if defined(ITRI_MOD_2_b)
+		/****************************EBM CONTROL*********************************/
+		case LTC_STATEMACH_EBMCONTROL:
+			if (ltc_state.substate == LTC_START_EBMCONTROL) {
+				if (ltc_ebm_cmd == LTC_EBM_EB_COL_CTRL) {
+					ltc_state.check_spi_flag = FALSE;
+
+					retVal = LTC_EBM_SetEBColState(1);
+
+					if (retVal != E_OK) {
+						//DIAG_Handler(DIAG_CH_LTC_SPI, DIAG_EVENT_NOK, 0, NULL_PTR);
+						ltc_state.timer = 0;
+						ltc_state.substate = LTC_EXIT_EBMCONTROL;
+						break;
+					} else {
+						ltc_state.timer = 80;	// SPM pulse; unit: ms
+						ltc_state.substate = LTC_PROC1_EBMCONTROL;
+					}
+
+					//DEBUG_PRINTF(("[%s:%d]LTC_START_EBMCONTROL\r\n", __FILE__, __LINE__));
+
+				} else {
+					ltc_state.timer = 0;
+					ltc_state.substate = LTC_EXIT_EBMCONTROL;
+				}
+			} else if (ltc_state.substate == LTC_PROC1_EBMCONTROL) {
+				if (ltc_ebm_cmd == LTC_EBM_EB_COL_CTRL) {
+					retVal =  LTC_EBM_SetEBColState(0);
+					ltc_ebm_force_update = 0;	// reset it
+				}
+
+				if (retVal != E_OK) {
+					ltc_state.timer = 0;
+					ltc_state.substate = LTC_EXIT_EBMCONTROL;
+					break;
+				} else {
+					ltc_state.timer = 70;	// SPM pulse; unit: ms
+					//ltc_state.substate = LTC_PROC2_EBMCONTROL;
+					ltc_state.substate = LTC_EXIT_EBMCONTROL;
+				}
+			} else if (ltc_state.substate == LTC_PROC2_EBMCONTROL) {
+			} else if (ltc_state.substate == LTC_EXIT_EBMCONTROL) {
+				//DEBUG_PRINTF(("[%s:%d]LTC_EXIT_EBMCONTROL\r\n", __FILE__, __LINE__));
+				ltc_ebm_cmd = LTC_EBM_NONE;
+				ltc_state.timer = 0;
+				ltc_state.check_spi_flag = FALSE;
+				ltc_state.state = LTC_STATEMACH_STARTMEAS;
+				ltc_state.substate = LTC_ENTRY;
+			}
+			break;
+#endif // ITRI_MOD_2_b
 
         /****************************BALANCE FEEDBACK*********************************/
         case LTC_STATEMACH_BALANCEFEEDBACK:
@@ -2422,7 +2683,7 @@ static STD_RETURN_TYPE_e LTC_Init(void) {
     uint16_t PEC_result = 0;
     uint16_t i = 0;
 
-    DEBUG_PRINTF(("[%s:%d]%s +++\r\n", __FILE__, __LINE__, __func__));
+    //DEBUG_PRINTF(("[%s:%d]%s +++\r\n", __FILE__, __LINE__, __func__)); // testing
     /* set REFON bit to 1 */
     /* data for the configuration */
     for (i=0; i < LTC_N_LTC; i++) {
@@ -2433,6 +2694,13 @@ static STD_RETURN_TYPE_e LTC_Init(void) {
         ltc_TXBuffer[3+(1*i)*6] = 0x00;
         ltc_TXBuffer[4+(1*i)*6] = 0x00;
         ltc_TXBuffer[5+(1*i)*6] = 0x00;
+
+#if defined(ITRI_MOD_2_b)
+        // SPM reset and disable flags are pull low
+        LTC_EBM_SetColState(i,
+							&ltc_TXBuffer[0+(i)*6],
+							0);
+#endif
     }
 
     /* now construct the message to be sent: it contains the wanted data, PLUS the needed PECs */
@@ -2537,6 +2805,7 @@ static STD_RETURN_TYPE_e LTC_BalanceControl(uint8_t registerSet) {
             }
         }
         retVal = LTC_TX((uint8_t*)ltc_cmdWRCFG, ltc_TXBuffer, ltc_TXPECbuffer);
+        DEBUG_PRINTF(("[%s:%d]ltc_cmdWRCFG\r\n", __FILE__, __LINE__));
     } else if (registerSet == 1) {  /* cells 13 to 15/18 WRCFG2 */
         for (j=0; j < BS_NR_OF_MODULES; j++) {
             i = BS_NR_OF_MODULES-j-1;
@@ -2571,6 +2840,7 @@ static STD_RETURN_TYPE_e LTC_BalanceControl(uint8_t registerSet) {
             }
         }
         retVal = LTC_TX((uint8_t*)ltc_cmdWRCFG2, ltc_TXBuffer, ltc_TXPECbuffer);
+        DEBUG_PRINTF(("[%s:%d]ltc_cmdWRCFG\r\n", __FILE__, __LINE__));
     } else {
         return E_NOT_OK;
     }
@@ -3520,5 +3790,6 @@ void* LTC_ThirdParty_Get_static_var(char* varName)
 	} else if (strcmp(varName, "ltc_allgpiovoltage") == 0) {
 		return (void*)&ltc_allgpiovoltage;
 	}
+	return NULL;
 }
 #endif // ENABLE_THIRD_PARTY

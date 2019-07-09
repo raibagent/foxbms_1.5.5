@@ -120,6 +120,10 @@ extern uint8_t MEAS_Request_EEPROM_Write(void);
  */
 extern uint8_t MEAS_Request_OpenWireCheck(void);
 
+#if defined(ITRI_MOD_2_b)
+extern uint8_t MEAS_Request_EBMControl(void);
+#endif // ITRI_MOD_2_b
+
 /*================== Function Implementations =============================*/
 
 

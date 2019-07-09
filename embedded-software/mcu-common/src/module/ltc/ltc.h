@@ -72,6 +72,7 @@ typedef struct {
     uint8_t mux3;                               /*!<    */
 } LTC_ERRORTABLE_s;
 
+
 /*================== Constant and Variable Definitions ====================*/
 
 /*================== Function Prototypes ==================================*/

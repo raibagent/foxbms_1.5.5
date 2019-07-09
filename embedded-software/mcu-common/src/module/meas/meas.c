@@ -158,3 +158,15 @@ extern STD_RETURN_TYPE_e MEAS_StartMeasurement(void) {
 
     return retval;
 }
+
+#if defined(ITRI_MOD_2_b)
+extern STD_RETURN_TYPE_e MEAS_Request_EBMControl(void) {
+    STD_RETURN_TYPE_e retval = E_NOT_OK;
+
+    if (LTC_SetStateRequest(LTC_STATE_EBMCONTROL_REQUEST) == LTC_OK) {
+        retval = E_OK;
+    }
+
+    return retval;
+}
+#endif // ITRI_MOD_2_b

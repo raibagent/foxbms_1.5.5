@@ -16,8 +16,13 @@
 	#define ITRI_MOD_1			// COM command
 	#define ITRI_MOD_2			// LTC extend
 	#define ITRI_MOD_2_a		// writes GPIO vol. to ltc_celltemperature
+	#define ITRI_MOD_2_b		// supporting EBM/SPM control
+	#define ITRI_MOD_2_c		// replace LTC_STATEMACH_BALANCECONTROL with LTC_STATEMACH_ALLGPIOMEASUREMENT
+	#define ITRI_MOD_2_d		// disable LTC_STATEMACH_MUXMEASUREMENT
 
 	#define ITRI_MOD_5			// expand module number to 25
+
+	#define	ITRI_MOD_9			// supporting SPM/EBM enable/bypass/disable
 
 	extern char* float_to_string(float v);
 

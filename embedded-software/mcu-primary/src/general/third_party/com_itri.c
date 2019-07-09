@@ -24,7 +24,7 @@ typedef uint32_t (*rb_cmd_funcPtr)(char* params);
 static char com_ltc_out_buf[128] = {0, };
 
 uint32_t rb_cmd_test_func_1(char* params) {
-	DEBUG_PRINTF(("DEBUG_PRINTF_EX test, float(%s), int(%d), hex(0x%02X), str(%s)\r\n", float_to_string(1.234), 123, 16, "A", "abc"));
+	DEBUG_PRINTF(("DEBUG_PRINTF_EX test, float(%s), int(%d), hex(0x%02X), str(%s)\r\n", float_to_string(1.234), 123, 16, "abc"));
 	return 0;
 }
 
@@ -35,7 +35,7 @@ uint32_t rb_cmd_get_BS_NR_OF_MODULES(char* params) {
 	uint32_t numMod = 0;
 
 	LTC_ThirdParty_Set_Get_Property("get_BS_NR_OF_MODULES", NULL, NULL, (void*)&numMod, NULL);
-	DEBUG_PRINTF(("BS_NR_OF_MODULES=%u\r\n", numMod));
+	DEBUG_PRINTF(("BS_NR_OF_MODULES=%lu\r\n", numMod));
 	return 0;
 }
 
@@ -43,7 +43,7 @@ uint32_t rb_cmd_get_BS_NR_OF_BAT_CELLS_PER_MODULE(char* params) {
 	uint32_t numMod = 0;
 
 	LTC_ThirdParty_Set_Get_Property("get_BS_NR_OF_BAT_CELLS_PER_MODULE", NULL, NULL, (void*)&numMod, NULL);
-	DEBUG_PRINTF(("BS_NR_OF_BAT_CELLS_PER_MODULE=%u\r\n", numMod));
+	DEBUG_PRINTF(("BS_NR_OF_BAT_CELLS_PER_MODULE=%lu\r\n", numMod));
 	return 0;
 }
 
@@ -59,7 +59,7 @@ uint32_t rb_cmd_get_LTC_CellVoltages(char* params) {
 }
 
 uint32_t rb_cmd_get_LTC_GPIOVoltages(char* params) {
-	char* pCmd = strtok(params, " ");
+	//char* pCmd = strtok(params, " ");
 	char* pParam = strtok(NULL, " ");
 	uint32_t modIdx = (uint32_t)atoi(pParam);
 
@@ -70,6 +70,30 @@ uint32_t rb_cmd_get_LTC_GPIOVoltages(char* params) {
 }
 
 #endif // ITRI_MOD_2
+
+#if defined(ITRI_MOD_9)
+uint32_t rb_cmd_set_ebm_eb_col_state(char* params) {
+	uint32_t i;
+	uint8_t ebState[BS_NR_OF_MODULES];
+	uint8_t colState[BS_NR_OF_COLUMNS];
+	//char* pCmd = strtok(params, " ");
+	char* pParam = NULL;
+
+	for (i=0; i < BS_NR_OF_MODULES; i++) {
+		pParam = strtok(NULL, " ");
+		ebState[i] = (uint8_t)atoi(pParam);
+	}
+	for (i=0; i < BS_NR_OF_COLUMNS; i++) {
+		pParam = strtok(NULL, " ");
+		colState[i] = (uint8_t)atoi(pParam);
+	}
+
+	LTC_ThirdParty_Set_Get_Property("set_ebm_eb_col_state", (void*)ebState, (void*)colState, NULL, NULL);
+	DEBUG_PRINTF(("[%s:%d]rb_cmd_set_ebm_eb_col_state done\r\n", __FILE__, __LINE__));
+
+	return 0;
+}
+#endif // ITRI_MOD_9
 
 typedef struct {
 	char cmd[48];
@@ -85,6 +109,9 @@ RB_CMD_s rb_cmds[] = {
 	{"get_LTC_CellVoltages", 				"cmd [module no.] ", 					&rb_cmd_get_LTC_CellVoltages},
 	{"get_LTC_GPIOVoltages", 				"cmd [module no.] ", 					&rb_cmd_get_LTC_GPIOVoltages},
 #endif // ITRI_MOD_2
+#if defined(ITRI_MOD_9)
+	{"set_ebm_eb_col_state", 				"cmd [ebm ... spm ...", 				&rb_cmd_set_ebm_eb_col_state},
+#endif
 };
 
 void COM_ThirdParty_printHelpCommand(uint8_t* cnt)
