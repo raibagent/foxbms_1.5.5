@@ -58,6 +58,11 @@
 #include "sox.h"
 #include "sys.h"
 
+#if defined(ITRI_MOD)
+	#include "com.h"
+	#include "ltc.h"
+#endif
+
 /*================== Function Prototypes ==================================*/
 
 static float cans_checkLimits(float value, uint32_t sigIdx);
@@ -3025,6 +3030,26 @@ uint32_t cans_getisoguard(uint32_t sigIdx, void *value) {
     return 0;
 }
 
+#if defined(ITRI_MOD_2_b)
+static cans_ebm_getconfig(void* value, uint8_t* configBuf, uint8_t* colConfigBuf) {
+	uint64_t config = (*(uint64_t *)value & 0xFFFFFFFFFFFFFF00) >> 8;
+	uint32_t i;
+
+	for (i=0; i < BS_NR_OF_MODULES; i++) {
+		configBuf[i] = (uint8_t)((config >> i*2) & 0x03);
+	}
+#if defined(ITRI_MOD_9)
+	if (colConfigBuf != NULL) {
+		for (i=0; i < BS_NR_OF_COLUMNS; i++) {
+			//colConfigBuf[i] = (uint8_t)((config >> (i + BS_NR_OF_MODULES)*2) & 0x03);
+			colConfigBuf[i] = (uint8_t)((config >> (i + BS_NR_OF_MODULES*2)) & 0x01);
+			//DEBUG_PRINTF_EX("[%d]config: 0x%x\r\n", __LINE__, (uint8_t)((config >> (i + BS_NR_OF_MODULES*2)) ));
+		}
+	}
+#endif
+}
+#endif
+
 
 uint32_t cans_setdebug(uint32_t sigIdx, void *value) {
     uint8_t data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -3054,6 +3079,27 @@ uint32_t cans_setdebug(uint32_t sigIdx, void *value) {
                 }
                 DB_WriteBlock(&staterequest_tab, DATA_BLOCK_ID_STATEREQUEST);
                 break;
+
+#if defined(ITRI_MOD_2_b)
+			case 21:
+				{
+					uint8_t configBuf[BS_NR_OF_MODULES];
+					uint8_t colConfigBuf[BS_NR_OF_COLUMNS];
+					cans_ebm_getconfig(value, configBuf, colConfigBuf);
+					LTC_ThirdParty_Set_Get_Property("set_ebm_eb_col_state", (void*)configBuf, (void*)colConfigBuf, NULL, NULL);
+				}
+				break;
+#endif
+
+#if defined(ITRI_MOD_6)
+            case 25:
+				{
+					LTC_ThirdParty_Set_Get_Property("set_curr_cali", NULL, NULL, NULL, NULL);
+					DEBUG_PRINTF(("[%s:%d]set_curr_cali\r\n", __FILE__, __LINE__));
+				}
+				break;
+#endif
+
             default:
                 break;
         }

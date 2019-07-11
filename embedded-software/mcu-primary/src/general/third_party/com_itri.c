@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char* float_to_string(float v)
+char* float_to_string(double v)
 {
 	static char g_ftBuf[16] = {0, };
 	int decimalDigits = 4;
@@ -24,7 +24,9 @@ typedef uint32_t (*rb_cmd_funcPtr)(char* params);
 static char com_ltc_out_buf[128] = {0, };
 
 uint32_t rb_cmd_test_func_1(char* params) {
-	DEBUG_PRINTF(("DEBUG_PRINTF_EX test, float(%s), int(%d), hex(0x%02X), str(%s)\r\n", float_to_string(1.234), 123, 16, "abc"));
+	//DEBUG_PRINTF(("DEBUG_PRINTF_EX test, float(%s), int(%d), hex(0x%02X), str(%s)\r\n", float_to_string(1.234), 123, 16, "abc"));
+	double timestamp = (double)24.0*3600.0*100.0 + (double)3600.0*23.0 + (double)60.0*59.0 + (double)59.0 + (double)0.1*9.0 + (double)0.01*9.0 + (double)0.001*9.0;
+	DEBUG_PRINTF(("timestamp: %s\r\n", float_to_string(timestamp)));
 	return 0;
 }
 
@@ -95,6 +97,13 @@ uint32_t rb_cmd_set_ebm_eb_col_state(char* params) {
 }
 #endif // ITRI_MOD_9
 
+#if defined(ITRI_MOD_6)
+uint32_t rb_cmd_cur_cali(char* params) {
+	LTC_ThirdParty_Set_Get_Property("set_curr_cali", NULL, NULL, NULL, NULL);
+	return 0;
+}
+#endif
+
 typedef struct {
 	char cmd[48];
 	char desc[64];
@@ -111,6 +120,9 @@ RB_CMD_s rb_cmds[] = {
 #endif // ITRI_MOD_2
 #if defined(ITRI_MOD_9)
 	{"set_ebm_eb_col_state", 				"cmd [ebm ... spm ...", 				&rb_cmd_set_ebm_eb_col_state},
+#endif
+#if defined(ITRI_MOD_6)
+	{"set_cur_cali",						"current calibration", 					&rb_cmd_cur_cali},
 #endif
 };
 
@@ -148,5 +160,11 @@ uint8_t COM_ThirdParty_Decoder(char* com_receivedbyte)
 	}
 
 	return 1;
+}
+
+double COM_GetTimeStamp()
+{
+	return (double)os_timer.Timer_d*24.0*3600.0 + (double)os_timer.Timer_h*3600.0 + (double)os_timer.Timer_min*60.0 + (double)os_timer.Timer_sec +
+		   (double)os_timer.Timer_100ms*0.1 + (double)os_timer.Timer_10ms*0.01 + (double)os_timer.Timer_1ms*0.001;
 }
 #endif // ITRI_MOD

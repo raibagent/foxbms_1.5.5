@@ -21,10 +21,15 @@
 	#define ITRI_MOD_2_d		// disable LTC_STATEMACH_MUXMEASUREMENT
 
 	#define ITRI_MOD_5			// expand module number to 25
+	#define ITRI_MOD_6			// current calibration
 
 	#define	ITRI_MOD_9			// supporting SPM/EBM enable/bypass/disable
 
-	extern char* float_to_string(float v);
+	extern char* float_to_string(double v);
+
+#if defined(ITRI_MOD_6)
+	extern double COM_GetTimeStamp();
+#endif
 
 #endif // ITRI_MOD
 

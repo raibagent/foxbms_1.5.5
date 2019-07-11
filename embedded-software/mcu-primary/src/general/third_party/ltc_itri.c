@@ -120,6 +120,15 @@ uint32_t set_ebm_eb_col_state(void* iParam1, void* iParam2, void* oParam1, void*
 }
 #endif // ITRI_MOD_9
 
+#if defined(ITRI_MOD_6)
+uint32_t set_curr_cali(void* iParam1, void* iParam2, void* oParam1, void* oParam2) {
+	if (ltc_ebm_cmd == LTC_EBM_NONE) {
+		ltc_ebm_cmd = LTC_EBM_CURR_CALI;
+	}
+	return 0;
+}
+#endif // ITRI_MOD_6
+
 typedef struct {
 	char 			 prop[48];
 	ltc_prop_funcPtr propFunc;
@@ -132,6 +141,9 @@ LTC_PROP_s ltc_props[] = {
 	{"get_LTC_GPIOVoltages", 				&get_LTC_GPIOVoltages},
 #if defined(ITRI_MOD_9)
 	{"set_ebm_eb_col_state", 				&set_ebm_eb_col_state},
+#endif
+#if defined(ITRI_MOD_6)
+	{"set_curr_cali", 						&set_curr_cali},
 #endif
 };
 
