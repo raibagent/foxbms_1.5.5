@@ -87,10 +87,10 @@ typedef enum {
 */
 #define BS_NR_OF_MODULES                           3
 
-#if defined(ITRI_MOD_9)
+#if defined(ITRI_MOD_2_b)
 	#define BS_NR_OF_COLUMNS                       	1
 	#define BS_NR_OF_ROWS							3
-#endif // ITRI_MOD_9
+#endif // ITRI_MOD_2_b
 
 /**
  * @ingroup CONFIG_BATTERYSYSTEM

@@ -8,6 +8,10 @@
 
 #if defined(ITRI_MOD_2_b)
 #include "ltc_itri.h"
+
+extern LTC_EBM_CONFIG_s ltc_ebm_config[BS_NR_OF_MODULES];
+extern LTC_EBM_CONFIG_s ltc_col_config[BS_NR_OF_COLUMNS];
+extern LTC_EBM_CMD_s ltc_ebm_cmd;
 #endif // ITRI_MOD_2_b
 
 #if defined(ITRI_MOD_2)
@@ -16,21 +20,6 @@
 extern void*    LTC_ThirdParty_Get_static_var(char* varName);
 
 typedef uint32_t (*ltc_prop_funcPtr)(void* iParam1, void* iParam2, void* oParam1, void* oParam2);
-
-#if 0 //defined(ITRI_MOD_9)
-LTC_EBM_CMD_s ltc_ebm_cmd = LTC_EBM_NONE;
-
-typedef struct {
-	uint8_t eb_state;		// 0:bypass, 1: enable, 2:disable(open)
-} LTC_EBM_CONFIG_s;
-
-LTC_EBM_CONFIG_s ltc_ebm_config[BS_NR_OF_MODULES];
-LTC_EBM_CONFIG_s ltc_col_config[BS_NR_OF_COLUMNS];
-#else
-extern LTC_EBM_CONFIG_s ltc_ebm_config[BS_NR_OF_MODULES];
-extern LTC_EBM_CONFIG_s ltc_col_config[BS_NR_OF_COLUMNS];
-extern LTC_EBM_CMD_s ltc_ebm_cmd;
-#endif
 
 uint32_t get_BS_NR_OF_MODULES(void* iParam1, void* iParam2, void* oParam1, void* oParam2) {
 	uint32_t* pOut = (uint32_t*)oParam1;
@@ -93,7 +82,7 @@ uint32_t get_LTC_GPIOVoltages(void* iParam1, void* iParam2, void* oParam1, void*
 	return 0;
 }
 
-#if defined(ITRI_MOD_9)
+#if defined(ITRI_MOD_2_b)
 #include "..\..\..\..\mcu-common\src\module\ltc\ltc_defs.h"
 extern LTC_RETURN_TYPE_e LTC_SetStateRequest(LTC_STATE_REQUEST_e statereq);
 
@@ -111,14 +100,14 @@ uint32_t set_ebm_eb_col_state(void* iParam1, void* iParam2, void* oParam1, void*
 
 	if (LTC_SetStateRequest(LTC_STATE_EBMCONTROL_REQUEST) == LTC_OK) {
 		ltc_ebm_cmd = LTC_EBM_EB_COL_CTRL;
-		DEBUG_PRINTF(("[%s:%d]done\r\n", __FILE__, __LINE__));
+		//DEBUG_PRINTF(("[%s:%d]done\r\n", __FILE__, __LINE__));
 	} else {
 		DEBUG_PRINTF(("[%s:%d][ERR]set LTC_STATE_EBMCONTROL_REQUEST fail!!!\r\n", __FILE__, __LINE__));
 	}
 
 	return 0;
 }
-#endif // ITRI_MOD_9
+#endif // ITRI_MOD_2_b
 
 #if defined(ITRI_MOD_6)
 uint32_t set_curr_cali(void* iParam1, void* iParam2, void* oParam1, void* oParam2) {
@@ -139,7 +128,7 @@ LTC_PROP_s ltc_props[] = {
 	{"get_BS_NR_OF_BAT_CELLS_PER_MODULE", 	&get_BS_NR_OF_BAT_CELLS_PER_MODULE},
 	{"get_LTC_CellVoltages", 				&get_LTC_CellVoltages},
 	{"get_LTC_GPIOVoltages", 				&get_LTC_GPIOVoltages},
-#if defined(ITRI_MOD_9)
+#if defined(ITRI_MOD_2_b)
 	{"set_ebm_eb_col_state", 				&set_ebm_eb_col_state},
 #endif
 #if defined(ITRI_MOD_6)

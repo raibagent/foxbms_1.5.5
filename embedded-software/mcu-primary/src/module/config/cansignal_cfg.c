@@ -93,6 +93,58 @@ static uint32_t cans_setSWversion(uint32_t, void *);
 #ifdef CAN_ISABELLENHUETTE_TRIGGERED
 static uint32_t cans_gettriggercurrent(uint32_t sigIdx, void *value);
 #endif
+
+#if defined(ITRI_MOD_11)
+#define HEARTBEAT_MAX_WAIT_TIME	(2.1)		// unit: second
+typedef struct {
+	uint8_t		is_connect_can_dev;
+	uint32_t	timestamp;
+} CAN_HEARTBEAT_s;
+static CAN_HEARTBEAT_s cans_heartbeat = {0, 0};
+static uint32_t can_heartbeat_max_diff = 0;	// for debug
+
+void cans_ebm_all_disable() {
+	uint8_t configBuf[BS_NR_OF_MODULES];
+	uint8_t colConfigBuf[BS_NR_OF_COLUMNS];
+	uint32_t i;
+
+	// disable all EBMs
+	for (i=0; i < BS_NR_OF_MODULES; i++) {
+		configBuf[i] = 2;
+	}
+	// disable all SPMs
+	for (i=0; i < BS_NR_OF_COLUMNS; i++) {
+		colConfigBuf[i] = 0;
+	}
+
+	//DEBUG_PRINTF(("[%s:%d]cans_ebm_all_disable()\r\n", __FILE__, __LINE__));
+	LTC_ThirdParty_Set_Get_Property("set_ebm_eb_col_state", (void*)configBuf, (void*)colConfigBuf, NULL, NULL);
+}
+
+void cans_check_heartbeat() {
+	if (cans_heartbeat.is_connect_can_dev == 1) {
+		uint32_t diff = COM_GetTimeStamp() - cans_heartbeat.timestamp;
+		if (diff > HEARTBEAT_MAX_WAIT_TIME) {
+			DEBUG_PRINTF(("[%s:%d]heartbeat losss -> all disable (time diff:%s)\r\n", __FILE__, __LINE__, float_to_string(diff)));
+			cans_ebm_all_disable();
+
+			cans_heartbeat.is_connect_can_dev = 0;
+		}
+		if (diff > can_heartbeat_max_diff) {
+			can_heartbeat_max_diff = diff;
+			//DEBUG_PRINTF_EX("[%s:%d]max heartbeat diff. time:%u ms\r\n", __FILE__, __LINE__, can_heartbeat_max_diff);
+		}
+	} else {
+		can_heartbeat_max_diff = 0;
+	}
+}
+
+void cans_send_heartbeat_pulse() {
+	cans_heartbeat.is_connect_can_dev = 1;
+	cans_heartbeat.timestamp = COM_GetTimeStamp();
+}
+
+#endif // ITRI_MOD_11
 /*================== Macros and Definitions ===============================*/
 static DATA_BLOCK_CURRENT_SENSOR_s cans_current_tab;
 
@@ -3038,7 +3090,7 @@ static cans_ebm_getconfig(void* value, uint8_t* configBuf, uint8_t* colConfigBuf
 	for (i=0; i < BS_NR_OF_MODULES; i++) {
 		configBuf[i] = (uint8_t)((config >> i*2) & 0x03);
 	}
-#if defined(ITRI_MOD_9)
+
 	if (colConfigBuf != NULL) {
 		for (i=0; i < BS_NR_OF_COLUMNS; i++) {
 			//colConfigBuf[i] = (uint8_t)((config >> (i + BS_NR_OF_MODULES)*2) & 0x03);
@@ -3046,7 +3098,6 @@ static cans_ebm_getconfig(void* value, uint8_t* configBuf, uint8_t* colConfigBuf
 			//DEBUG_PRINTF_EX("[%d]config: 0x%x\r\n", __LINE__, (uint8_t)((config >> (i + BS_NR_OF_MODULES*2)) ));
 		}
 	}
-#endif
 }
 #endif
 
@@ -3100,6 +3151,15 @@ uint32_t cans_setdebug(uint32_t sigIdx, void *value) {
 				break;
 #endif
 
+#if defined(ITRI_MOD_11)
+			case 30:
+				{
+					cans_send_heartbeat_pulse();
+					//DEBUG_PRINTF(("[%s:%d]receive heart beat (time:%u)\r\n", __FILE__, __LINE__, cans_heart_beat.timestamp));
+				}
+				break;
+#endif
+
             default:
                 break;
         }
@@ -3125,3 +3185,4 @@ float cans_checkLimits(float value, uint32_t sigIdx) {
 
     return retVal;
 }
+

@@ -428,8 +428,8 @@ static STD_RETURN_TYPE_e LTC_EBM_SetEBColState(uint8_t isStart) {
 	//		MCU_GetTimeStamp(), isStart,
 	//		ltc_TXBuffer[2*6], ltc_tmpTXbuffer[1*6], ltc_tmpTXbuffer[0*6]);
 	retVal = LTC_TX((uint8_t*)ltc_cmdWRCFG, ltc_TXBuffer, ltc_TXPECbuffer);
-	DEBUG_PRINTF(("[%s:%d]ltc_cmdWRCFG [0x%x 0x%x 0x%x] isStart:%u retVal:%u\r\n", __FILE__, __LINE__,
-			ltc_TXBuffer[2*6], ltc_TXBuffer[1*6], ltc_TXBuffer[0*6], isStart, retVal));
+	//DEBUG_PRINTF(("[%s:%d]ltc_cmdWRCFG [0x%x 0x%x 0x%x] isStart:%u retVal:%u\r\n", __FILE__, __LINE__,
+	//		ltc_TXBuffer[2*6], ltc_TXBuffer[1*6], ltc_TXBuffer[0*6], isStart, retVal));
 
 	return retVal;
 }

@@ -73,7 +73,7 @@ uint32_t rb_cmd_get_LTC_GPIOVoltages(char* params) {
 
 #endif // ITRI_MOD_2
 
-#if defined(ITRI_MOD_9)
+#if defined(ITRI_MOD_2_b)
 uint32_t rb_cmd_set_ebm_eb_col_state(char* params) {
 	uint32_t i;
 	uint8_t ebState[BS_NR_OF_MODULES];
@@ -91,15 +91,23 @@ uint32_t rb_cmd_set_ebm_eb_col_state(char* params) {
 	}
 
 	LTC_ThirdParty_Set_Get_Property("set_ebm_eb_col_state", (void*)ebState, (void*)colState, NULL, NULL);
-	DEBUG_PRINTF(("[%s:%d]rb_cmd_set_ebm_eb_col_state done\r\n", __FILE__, __LINE__));
+	//DEBUG_PRINTF(("[%s:%d]rb_cmd_set_ebm_eb_col_state done\r\n", __FILE__, __LINE__));
 
 	return 0;
 }
-#endif // ITRI_MOD_9
+#endif // ITRI_MOD_2_b
 
 #if defined(ITRI_MOD_6)
 uint32_t rb_cmd_cur_cali(char* params) {
 	LTC_ThirdParty_Set_Get_Property("set_curr_cali", NULL, NULL, NULL, NULL);
+	return 0;
+}
+#endif
+
+#if defined(ITRI_MOD_11)
+extern void cans_send_heartbeat_pulse();
+uint32_t rb_cmd_send_heartbeat_pulse(char* params) {
+	cans_send_heartbeat_pulse();
 	return 0;
 }
 #endif
@@ -118,11 +126,14 @@ RB_CMD_s rb_cmds[] = {
 	{"get_LTC_CellVoltages", 				"cmd [module no.] ", 					&rb_cmd_get_LTC_CellVoltages},
 	{"get_LTC_GPIOVoltages", 				"cmd [module no.] ", 					&rb_cmd_get_LTC_GPIOVoltages},
 #endif // ITRI_MOD_2
-#if defined(ITRI_MOD_9)
+#if defined(ITRI_MOD_2_b)
 	{"set_ebm_eb_col_state", 				"cmd [ebm ... spm ...", 				&rb_cmd_set_ebm_eb_col_state},
 #endif
 #if defined(ITRI_MOD_6)
 	{"set_cur_cali",						"current calibration", 					&rb_cmd_cur_cali},
+#endif
+#if defined(ITRI_MOD_11)
+	{"send_heartbeat_pulse",				"test heartbeat func.",					&rb_cmd_send_heartbeat_pulse},
 #endif
 };
 
