@@ -112,6 +112,15 @@ uint32_t rb_cmd_send_heartbeat_pulse(char* params) {
 }
 #endif
 
+#if defined(ITRI_MOD_13)
+extern uint8_t LTC_ThirdParty_is_all_disabled();
+uint32_t rb_cmd_is_all_disabled(char* params) {
+	uint8_t isAllDisabled = LTC_ThirdParty_is_all_disabled();
+	DEBUG_PRINTF(("is_all_disabled = %d\r\n", isAllDisabled));
+	return 0;
+}
+#endif
+
 typedef struct {
 	char cmd[48];
 	char desc[64];
@@ -134,6 +143,9 @@ RB_CMD_s rb_cmds[] = {
 #endif
 #if defined(ITRI_MOD_11)
 	{"send_heartbeat_pulse",				"test heartbeat func.",					&rb_cmd_send_heartbeat_pulse},
+#endif
+#if defined(ITRI_MOD_13)
+	{"is_all_disabled",						"test is_all_disabled func.",			&rb_cmd_is_all_disabled},
 #endif
 };
 

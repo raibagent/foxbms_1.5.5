@@ -587,16 +587,22 @@ extern void LTC_SaveVoltages(void) {
 #endif
 
         for (j=0; j < BS_NR_OF_BAT_CELLS_PER_MODULE; j++) {
+
 #if defined(ITRI_MOD_6)
             if (ltc_ebm_cali[i].isCali == 0) {
 				if (j == LTC_EBM_BAT_CURR_IDX) ltc_cellvoltage.voltage[i*(BS_NR_OF_BAT_CELLS_PER_MODULE)+j] -= ltc_ebm_cali[i].curBat_offset;
 				if (j == LTC_EBM_MOD_CURR_IDX) ltc_cellvoltage.voltage[i*(BS_NR_OF_BAT_CELLS_PER_MODULE)+j] -= ltc_ebm_cali[i].curMod_offset;
             }
 #endif
-
+#if defined(ITRI_MOD_13)
+            if (j >= ITRI_NR_OF_BAT_CELLS_PER_MODULE) break;
+#endif
             mean += ltc_cellvoltage.voltage[i*(BS_NR_OF_BAT_CELLS_PER_MODULE)+j];
+            //DEBUG_PRINTF(("[%s:%d]vol:%u i:%u j:%u\r\n", __func__, __LINE__, ltc_cellvoltage.voltage[i*(BS_NR_OF_BAT_CELLS_PER_MODULE)+j], i, j));
             if (ltc_cellvoltage.voltage[i*(BS_NR_OF_BAT_CELLS_PER_MODULE)+j] < min) {
                 min = ltc_cellvoltage.voltage[i*(BS_NR_OF_BAT_CELLS_PER_MODULE)+j];
+                //if (min < 1) DEBUG_PRINTF(("[%s:%d]min:%u i:%u j:%u\r\n", __func__, __LINE__, min, i, j));
+
                 module_number_min = i;
                 cell_number_min = j;
             }
@@ -623,6 +629,7 @@ extern void LTC_SaveVoltages(void) {
     ltc_minmax.voltage_cell_number_max = cell_number_max;
     DB_WriteBlock(&ltc_cellvoltage, DATA_BLOCK_ID_CELLVOLTAGE);
     DB_WriteBlock(&ltc_minmax, DATA_BLOCK_ID_MINMAX);
+
 }
 
 /**
@@ -1601,6 +1608,10 @@ void LTC_Trigger(void) {
                 ltc_state.check_spi_flag = FALSE;
                 ltc_state.state = LTC_STATEMACH_STARTMEAS;
                 ltc_state.substate = LTC_ENTRY;
+
+#if defined(ITRI_MOD_13)
+				LTC_SetFirstMeasurementCycleFinished();
+#endif
 #else
                 if (ltc_state.balance_control_done == TRUE) {
                     statereq = LTC_TransferStateRequest(&tmpbusID, &tmpadcMode, &tmpadcMeasCh);
@@ -2548,20 +2559,30 @@ static void LTC_SaveRXtoVoltagebuffer(uint8_t registerSet, uint8_t *rxBuffer, ui
         for (j=0; j < 3; j++) {
             /* index considering maximum number of cells */
             voltage_index = j+i_offset;
+#if defined(ITRI_MOD_60)
+            if (voltage_index >= BS_NR_OF_BAT_CELLS_PER_MODULE) break;
+#endif
 
             if (ltc_voltage_input_used[voltage_index] == 1) {
                 val_ui = *((uint16_t *)(&rxBuffer[4+2*j+i*8]));
                 voltage = (uint16_t)(((float)(val_ui))*100e-6*1000.0);        /* Unit V -> in mV */
                 if (PEC_valid == TRUE) {
+#if defined(ITRI_MOD_60)
+                	ltc_cellvoltage.voltage[voltage_index+i*(BS_NR_OF_BAT_CELLS_PER_MODULE)] = voltage;
+#else
                     ltc_cellvoltage.voltage[ltc_used_cells_index+i*(BS_NR_OF_BAT_CELLS_PER_MODULE)] = voltage;
+#endif
+
                 }
 
                 ltc_used_cells_index++;
                 incrementations++;
 
+#if !defined(ITRI_MOD_60)
                 if (ltc_used_cells_index > BS_NR_OF_BAT_CELLS_PER_MODULE) {
                     return;
                 }
+#endif
             }
         }
         /* restore start value for next module */
@@ -3835,4 +3856,39 @@ void* LTC_ThirdParty_Get_static_var(char* varName)
 	}
 	return NULL;
 }
+
+#if defined(ITRI_MOD_13)
+#define IS_HIGH(a)	(a > 4000 ? 1:0)
+uint8_t LTC_ThirdParty_is_all_disabled() {
+	uint8_t isAllDisabled = 1, i;
+
+	// check EBM
+	// get GPIO idx/val of disable state(2)
+	uint8_t gpio2_no = eb_state_setting[2].gpio2.no;
+	uint8_t gpio2_val = eb_state_setting[2].gpio2.val;
+	uint8_t gpio4_no = eb_state_setting[2].gpio4.no;
+	uint8_t gpio4_val = eb_state_setting[2].gpio4.val;
+	for (i=0; i < BS_NR_OF_MODULES; i++) {
+		//DEBUG_PRINTF(("[%s:%d]i:%u gpio2_no:%u gpio2_val:%u vol:%u\r\n", __FILE__, __LINE__, i, gpio2_no, gpio2_val, ltc_allgpiovoltage.gpiovoltage[i*BS_NR_OF_GPIOS_PER_MODULE+gpio2_no-1]));
+		if ((IS_HIGH(ltc_allgpiovoltage.gpiovoltage[i*BS_NR_OF_GPIOS_PER_MODULE+gpio2_no-1]) != gpio2_val) ||
+			(IS_HIGH(ltc_allgpiovoltage.gpiovoltage[i*BS_NR_OF_GPIOS_PER_MODULE+gpio4_no-1]) != gpio4_val)) {
+			isAllDisabled = 0;
+			break;
+		}
+	}
+	// check SPM
+	if (isAllDisabled == 1) {
+		for (i=0; i < BS_NR_OF_COLUMNS; i++) {
+			uint8_t modIdx = col_state_setting[i].state.modNo;
+			uint8_t gpioNo = col_state_setting[i].state.gpioNo;
+			if (IS_HIGH(ltc_allgpiovoltage.gpiovoltage[modIdx*BS_NR_OF_GPIOS_PER_MODULE+gpioNo-1]) == 1) {
+				isAllDisabled = 0;
+				break;
+			}
+		}
+	}
+
+	return isAllDisabled;
+}
+#endif
 #endif // ENABLE_THIRD_PARTY

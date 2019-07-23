@@ -18,6 +18,9 @@ extern LTC_EBM_CMD_s ltc_ebm_cmd;
 #include "database.h"
 
 extern void*    LTC_ThirdParty_Get_static_var(char* varName);
+#if defined(ITRI_MOD_13)
+extern uint8_t  LTC_ThirdParty_is_all_disabled();
+#endif
 
 typedef uint32_t (*ltc_prop_funcPtr)(void* iParam1, void* iParam2, void* oParam1, void* oParam2);
 
@@ -42,7 +45,7 @@ uint32_t get_LTC_CellVoltages(void* iParam1, void* iParam2, void* oParam1, void*
 #if 1
 	sprintf(com_out_buf, "M[%02lu]", modIdx);
 	for (i=0; i < BS_NR_OF_BAT_CELLS_PER_MODULE; i++) {
-		sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_cellvoltage->voltage[i]);
+		sprintf(com_out_buf, "%s %u", com_out_buf, p_ltc_cellvoltage->voltage[modIdx * BS_NR_OF_BAT_CELLS_PER_MODULE + i]);
 	}
 #else
 	sprintf(com_out_buf, "M[%u] %u %u %u %u %u %u %u ", modIdx,
@@ -91,6 +94,8 @@ uint32_t set_ebm_eb_col_state(void* iParam1, void* iParam2, void* oParam1, void*
 	uint8_t* pColState = (uint8_t*)iParam2;
 	uint32_t i;
 
+	if (ltc_ebm_cmd != LTC_EBM_NONE) return 0;
+
 	for (i=0; i < BS_NR_OF_MODULES; i++) {
 		ltc_ebm_config[i].eb_state = pEBState[i];
 	}
@@ -102,7 +107,7 @@ uint32_t set_ebm_eb_col_state(void* iParam1, void* iParam2, void* oParam1, void*
 		ltc_ebm_cmd = LTC_EBM_EB_COL_CTRL;
 		//DEBUG_PRINTF(("[%s:%d]done\r\n", __FILE__, __LINE__));
 	} else {
-		DEBUG_PRINTF(("[%s:%d][ERR]set LTC_STATE_EBMCONTROL_REQUEST fail!!!\r\n", __FILE__, __LINE__));
+		DEBUG_PRINTF(("[%s:%d][ERR]set LTC_STATE_EBMCONTROL_REQUEST fail!!!\r\n", __func__, __LINE__));
 	}
 
 	return 0;
@@ -117,6 +122,16 @@ uint32_t set_curr_cali(void* iParam1, void* iParam2, void* oParam1, void* oParam
 	return 0;
 }
 #endif // ITRI_MOD_6
+
+#if defined(ITRI_MOD_13)
+uint32_t is_all_disabled(void* iParam1, void* iParam2, void* oParam1, void* oParam2) {
+	uint8_t* pIsAllDisabled = (uint8_t*)oParam1;
+
+	*pIsAllDisabled = LTC_ThirdParty_is_all_disabled();
+
+	return 0;
+}
+#endif
 
 typedef struct {
 	char 			 prop[48];
@@ -133,6 +148,9 @@ LTC_PROP_s ltc_props[] = {
 #endif
 #if defined(ITRI_MOD_6)
 	{"set_curr_cali", 						&set_curr_cali},
+#endif
+#if defined(ITRI_MOD_13)
+	{"is_all_disabled", 					&is_all_disabled},
 #endif
 };
 

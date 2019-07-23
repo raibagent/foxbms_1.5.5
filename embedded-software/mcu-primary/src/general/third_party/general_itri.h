@@ -24,7 +24,9 @@
 	#define ITRI_MOD_6			// current calibration
 
 	#define ITRI_MOD_11			// support heartbeat
+	#define ITRI_MOD_13			// monitor cell voltage safe operating limit (BC_VOLTMAX/BC_VOLTMIN)
 
+	#define ITRI_MOD_60
 
 	// public functions
 	extern char* float_to_string(double v);

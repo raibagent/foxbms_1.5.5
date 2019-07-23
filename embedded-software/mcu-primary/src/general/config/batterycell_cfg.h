@@ -145,9 +145,15 @@
  * \par Default:
  * 2800
 */
-#define BC_VOLTMAX_MSL      2800
-#define BC_VOLTMAX_RSL      2750
-#define BC_VOLTMAX_MOL      2720
+#if defined(ITRI_MOD_13)
+	#define BC_VOLTMAX_MSL      4500
+	#define BC_VOLTMAX_RSL      4450
+	#define BC_VOLTMAX_MOL      4420
+#else
+	#define BC_VOLTMAX_MSL      2800
+	#define BC_VOLTMAX_RSL      2750
+	#define BC_VOLTMAX_MOL      2720
+#endif
 
 /**
  * @ingroup CONFIG_BATTERYCELL
@@ -159,7 +165,11 @@
  * \par Default:
  * 2500
 */
-#define BC_VOLT_NOMINAL     2500
+#if defined(ITRI_MOD)
+	#define BC_VOLT_NOMINAL     3300
+#else
+	#define BC_VOLT_NOMINAL     2500
+#endif
 /**
  * @ingroup CONFIG_BATTERYCELL
  * Minimum cell voltage limit.
@@ -173,9 +183,15 @@
  * \par Default:
  * 1700
 */
-#define BC_VOLTMIN_MSL      1700
-#define BC_VOLTMIN_RSL      1750
-#define BC_VOLTMIN_MOL      1780
+#if defined(ITRI_MOD_13)
+	#define BC_VOLTMIN_MSL      2500
+	#define BC_VOLTMIN_RSL      2550
+	#define BC_VOLTMIN_MOL      2580
+#else
+	#define BC_VOLTMIN_MSL      1700
+	#define BC_VOLTMIN_RSL      1750
+	#define BC_VOLTMIN_MOL      1780
+#endif
 
 /**
  * @ingroup CONFIG_BATTERYCELL

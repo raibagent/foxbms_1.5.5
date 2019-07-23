@@ -103,10 +103,17 @@ typedef struct {
 static CAN_HEARTBEAT_s cans_heartbeat = {0, 0};
 static uint32_t can_heartbeat_max_diff = 0;	// for debug
 
+#if defined(ITRI_MOD_13)
+extern uint8_t LTC_ThirdParty_is_all_disabled();
+#endif
 void cans_ebm_all_disable() {
 	uint8_t configBuf[BS_NR_OF_MODULES];
 	uint8_t colConfigBuf[BS_NR_OF_COLUMNS];
 	uint32_t i;
+
+#if defined(ITRI_MOD_13)
+	if (LTC_ThirdParty_is_all_disabled() == 1) return;
+#endif
 
 	// disable all EBMs
 	for (i=0; i < BS_NR_OF_MODULES; i++) {
@@ -117,7 +124,7 @@ void cans_ebm_all_disable() {
 		colConfigBuf[i] = 0;
 	}
 
-	//DEBUG_PRINTF(("[%s:%d]cans_ebm_all_disable()\r\n", __FILE__, __LINE__));
+	DEBUG_PRINTF(("[%s:%d]cans_ebm_all_disable()\r\n", __func__, __LINE__));
 	LTC_ThirdParty_Set_Get_Property("set_ebm_eb_col_state", (void*)configBuf, (void*)colConfigBuf, NULL, NULL);
 }
 
@@ -125,7 +132,7 @@ void cans_check_heartbeat() {
 	if (cans_heartbeat.is_connect_can_dev == 1) {
 		uint32_t diff = COM_GetTimeStamp() - cans_heartbeat.timestamp;
 		if (diff > HEARTBEAT_MAX_WAIT_TIME) {
-			DEBUG_PRINTF(("[%s:%d]heartbeat losss -> all disable (time diff:%s)\r\n", __FILE__, __LINE__, float_to_string(diff)));
+			DEBUG_PRINTF(("[%s:%d]heartbeat losss -> all disable (time diff:%s)\r\n", __func__, __LINE__, float_to_string(diff)));
 			cans_ebm_all_disable();
 
 			cans_heartbeat.is_connect_can_dev = 0;

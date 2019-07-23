@@ -65,6 +65,10 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+#if defined(ITRI_MOD)
+#include "com.h"
+#endif
+
 /*================== Macros and Definitions ===============================*/
 
 /**
@@ -412,6 +416,7 @@ void SYS_Trigger(void) {
             /****************************START FIRST MEAS CYCLE**************************/
             case SYS_STATEMACH_FIRST_MEASUREMENT_CYCLE:
                 SYS_SAVELASTSTATES();
+
                 if (sys_state.substate == SYS_ENTRY) {
                     MEAS_StartMeasurement();
                     sys_state.InitCounter = 0;

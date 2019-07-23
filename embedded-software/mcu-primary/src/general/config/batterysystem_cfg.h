@@ -85,7 +85,7 @@ typedef enum {
  * \par Default:
  * 2
 */
-#define BS_NR_OF_MODULES                           3
+#define BS_NR_OF_MODULES                           	3
 
 #if defined(ITRI_MOD_2_b)
 	#define BS_NR_OF_COLUMNS                       	1
@@ -100,7 +100,15 @@ typedef enum {
  * \par Default:
  * 12
 */
-#define BS_NR_OF_BAT_CELLS_PER_MODULE               12
+#if defined(ITRI_MOD)
+	#define BS_NR_OF_BAT_CELLS_PER_MODULE           8
+#else
+	#define BS_NR_OF_BAT_CELLS_PER_MODULE           12
+#endif
+
+#if defined(ITRI_MOD_13)
+	#define ITRI_NR_OF_BAT_CELLS_PER_MODULE			4
+#endif
 
 #if BS_NR_OF_BAT_CELLS_PER_MODULE <= 12
     #define BS_MAX_SUPPORTED_CELLS         12
@@ -199,7 +207,7 @@ typedef enum {
  *
 */
 #if defined(ITRI_MOD)
-	#define CURRENT_SENSOR_PRESENT               TRUE
+	#define CURRENT_SENSOR_PRESENT               FALSE
 #else
 	#define CURRENT_SENSOR_PRESENT               TRUE
 #endif

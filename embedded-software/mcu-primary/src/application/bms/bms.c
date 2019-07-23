@@ -62,6 +62,9 @@
 #include "meas.h"
 #include "os.h"
 
+#if defined(ITRI_MOD)
+	#include "com.h"
+#endif
 
 /*================== Macros and Definitions ===============================*/
 
@@ -718,6 +721,9 @@ static uint8_t BMS_CheckCANRequests(void) {
     return retVal;
 }
 
+#if defined(ITRI_MOD_13)
+extern void cans_ebm_all_disable();
+#endif
 /**
  * @brief   checks the abidance by the safe operating area
  *
@@ -730,7 +736,7 @@ static void BMS_CheckVoltages(void) {
     uint16_t vol_max = minmax.voltage_max;
     uint16_t vol_min = minmax.voltage_min;
 
-
+    //DEBUG_PRINTF(("[%s:%d]vol_max:%u vol_min:%u\r\n", __FILE__, __LINE__, vol_max, vol_min));
     if (vol_max >= BC_VOLTMAX_MOL) {
         /* Over voltage maximum operating limit violated */
         DIAG_Handler(DIAG_CH_CELLVOLTAGE_OVERVOLTAGE_MOL, DIAG_EVENT_NOK, 0, NULL_PTR);
@@ -740,6 +746,9 @@ static void BMS_CheckVoltages(void) {
             if (vol_max >= BC_VOLTMAX_MSL) {
                 /* Over voltage maximum safety limit violated */
                 DIAG_Handler(DIAG_CH_CELLVOLTAGE_OVERVOLTAGE_MSL, DIAG_EVENT_NOK, 0, NULL_PTR);
+#if defined(ITRI_MOD_13)
+                cans_ebm_all_disable();
+#endif
             }
         }
     }
@@ -765,6 +774,9 @@ static void BMS_CheckVoltages(void) {
             if (vol_min <= BC_VOLTMIN_MSL) {
                 /* Under voltage maximum safety limit violated */
                 DIAG_Handler(DIAG_CH_CELLVOLTAGE_UNDERVOLTAGE_MSL, DIAG_EVENT_NOK, 0, NULL_PTR);
+#if defined(ITRI_MOD_13)
+                cans_ebm_all_disable();
+#endif
             }
         }
     }

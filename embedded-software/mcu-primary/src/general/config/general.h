@@ -131,7 +131,11 @@
  * \par Default:
  * 0
 */
-#define BUILD_MODULE_ENABLE_CONTACTOR           1
+#if defined(ITRI_MOD)
+	#define BUILD_MODULE_ENABLE_CONTACTOR           0
+#else
+	#define BUILD_MODULE_ENABLE_CONTACTOR           1
+#endif
 
 /**
  * @ingroup CONFIG_GENERAL
@@ -151,7 +155,11 @@
  * \par Default:
  * 0
 */
-#define BUILD_MODULE_ENABLE_ISOGUARD          1
+#if defined(ITRI_MOD)
+	#define BUILD_MODULE_ENABLE_ISOGUARD          1
+#else
+	#define BUILD_MODULE_ENABLE_ISOGUARD          1
+#endif
 
 
 /**
