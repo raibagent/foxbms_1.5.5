@@ -2750,6 +2750,22 @@ static STD_RETURN_TYPE_e LTC_Init(void) {
     /* set REFON bit to 1 */
     /* data for the configuration */
     for (i=0; i < LTC_N_LTC; i++) {
+#if defined(ITRI_MOD_2_b)
+		uint16_t j = BS_NR_OF_MODULES-i-1;
+        /* FC = disable all pull-downs, REFON = 1, DTEN = 0, ADCOPT = 0 */
+        ltc_TXBuffer[0+(1*j)*6] = 0xFC;
+        ltc_TXBuffer[1+(1*j)*6] = 0x00;
+        ltc_TXBuffer[2+(1*j)*6] = 0x00;
+        ltc_TXBuffer[3+(1*j)*6] = 0x00;
+        ltc_TXBuffer[4+(1*j)*6] = 0x00;
+        ltc_TXBuffer[5+(1*j)*6] = 0x00;
+
+		// SPM reset and disable flags are pull low
+		LTC_EBM_SetColState(i,
+							&ltc_TXBuffer[0+j*6],
+							0);
+		//DEBUG_PRINTF(("[%s:%d]i:%d buf:0x%X\r\n", __FILE__, __LINE__, i, ltc_TXBuffer[0+(i)*6]));
+#else
         /* FC = disable all pull-downs, REFON = 1, DTEN = 0, ADCOPT = 0 */
         ltc_TXBuffer[0+(1*i)*6] = 0xFC;
         ltc_TXBuffer[1+(1*i)*6] = 0x00;
@@ -2757,13 +2773,6 @@ static STD_RETURN_TYPE_e LTC_Init(void) {
         ltc_TXBuffer[3+(1*i)*6] = 0x00;
         ltc_TXBuffer[4+(1*i)*6] = 0x00;
         ltc_TXBuffer[5+(1*i)*6] = 0x00;
-
-#if defined(ITRI_MOD_2_b)
-        // SPM reset and disable flags are pull low
-        LTC_EBM_SetColState(i,
-							&ltc_TXBuffer[0+(i)*6],
-							0);
-        //DEBUG_PRINTF(("[%s:%d]i:%d buf:0x%X\r\n", __FILE__, __LINE__, i, ltc_TXBuffer[0+(i)*6]));
 #endif
     }
 
